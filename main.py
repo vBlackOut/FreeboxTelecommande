@@ -6,6 +6,8 @@ class Telecommande():
 
         self.code = ""
 
+        self.url = "http://hd1.freebox.fr/pub/remote_control"
+
         self.dict_commande = {
             "red": "red", # Bouton roug
             "green": "green", # Bouton vert
@@ -63,13 +65,22 @@ class Telecommande():
         }
 
     def commande(self, commande):
-        send = requests.get("http://hd1.freebox.fr/pub/remote_control?code={}&key={}".format(self.code, self.dict_commande[commande]))
+        send = requests.get(
+        "{}?code={}&key={}".format(self.url,
+                                   self.code,
+                                   self.dict_commande[commande]
+        ))
+
         if send.status_code == 200:
             time.sleep(2.5) # wait commande execute
 
     def multi_commande(self, list_commande, count_timesleep=5):
         for i, commande in enumerate(list_commande):
-            send = requests.get("http://hd1.freebox.fr/pub/remote_control?code={}&key={}".format(self.code, self.dict_commande[commande]))
+            send = requests.get(
+            "{}?code={}&key={}".format(self.url,
+                                       self.code,
+                                       self.dict_commande[commande]
+            ))
             if send.status_code == 200:
                 time.sleep(0.3) # wait commande execute
 
