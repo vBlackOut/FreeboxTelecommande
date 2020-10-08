@@ -89,6 +89,4 @@ class Telecommande():
 
 if __name__ == "__main__":
     telecommande = Telecommande()
-    telecommande.multi_commande(["up", "down", "up", "down", "up",
-                                 "down", "up", "down", "up", "down",
-                                 "down", "up", "down", "up", "down"])
+    telecommande.multi_commande(["up", "down", "up", "down", "up"]*3)
