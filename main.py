@@ -5,8 +5,12 @@ class Telecommande():
     def __init__(self):
 
         self.code = ""
+        self.server_freebox = "http://mafreebox.freebox.fr/"
+        self.url_freebox = "http://hd1.freebox.fr/"
+        self.url_remote = "{}pub/remote_control?".format(self.url_freebox)
+        self.dict_channel = {}
+        self.programme_url = "{}api/v3/tv/epg/by_channel".format(self.server_freebox, )
 
-        self.url = "http://hd1.freebox.fr/pub/remote_control"
 
         self.dict_commande = {
             "red": "red", # Bouton roug
@@ -64,29 +68,93 @@ class Telecommande():
             "next": "next", # Bouton >>| suivant
         }
 
+        self.get_chaine()
+
+    def get_chaine(self):
+        list_channel = requests.get("{}api/v8/tv/channels/".format(self.server_freebox)).json()
+
+        for channel, value in list_channel['result'].items():
+            code_channel = value['uuid']
+            channel_name = value['name']
+
+            if value['available'] or value['has_abo']:
+                self.dict_channel[channel_name] = code_channel
+
+    def get_programme(self, channel):
+        now=int(time.time())
+        now = now-now%7200
+        programme = requests.get('{}/{}/{}'.format(self.programme_url, self.dict_channel[channel], now+7200)).json()
+        return programme
+
+    def change_channel(self, channel=""):
+
+        if channel != "":
+            self.multi_commande(list(channel))
+
     def commande(self, commande):
         send = requests.get(
-        "{}?code={}&key={}".format(self.url,
-                                   self.code,
-                                   self.dict_commande[commande]
+        "{}code={}&key={}".format(self.url_remote,
+                                  self.code,
+                                  self.dict_commande[commande]
         ))
 
         if send.status_code == 200:
             time.sleep(2.5) # wait commande execute
 
-    def multi_commande(self, list_commande, count_timesleep=5):
-        for i, commande in enumerate(list_commande):
-            send = requests.get(
-            "{}?code={}&key={}".format(self.url,
-                                       self.code,
-                                       self.dict_commande[commande]
-            ))
-            if send.status_code == 200:
-                time.sleep(0.3) # wait commande execute
+    def multi_commande(self, list_commande, count_timesleep=5, timesleep=4, chan_change=True):
 
-            if i % count_timesleep == count_timesleep-1:
-                time.sleep(2.3) # wait 2 secondes after 5 commandes send
+        send = requests.get(
+        "{}code={}&key=1".format(self.url_remote,
+                                  self.code,
+                                  #self.dict_commande[commande],
+                                  #repeat
+        ))
+        send = requests.get(
+        "{}code={}&key=5".format(self.url_remote,
+                                  self.code
+        ))
+        send = requests.get(
+        "{}code={}&key=5".format(self.url_remote,
+                                  self.code,
+        ))
+        send = requests.get(
+        "{}code={}&key".format(self.url_remote,
+                                  self.code,
+        ))
+        for i, commande in enumerate(list_commande):
+
+            send = requests.get(
+            "{0}code={1}&key={2}".format(self.url_remote,
+                                      self.code,
+                                      self.dict_commande[commande],
+            ))
+
+            if not chan_change:
+                if send.status_code == 200:
+                    time.sleep(0.3) # wait commande execute
+
+                if i % count_timesleep == count_timesleep-1:
+                    time.sleep(timesleep) # wait 2 secondes after 5 commandes send
+
+        if chan_change:
+            send = requests.get(
+            "{}code={}&key".format(self.url_remote,
+                                      self.code,
+            ))
+            time.sleep(timesleep)
 
 if __name__ == "__main__":
     telecommande = Telecommande()
-    telecommande.multi_commande(["up", "down", "up", "down", "up"]*3)
+    
+    # Telecommande send button
+    telecommande.multi_commande(["ok"]) # or
+    
+    # change channel
+    telecommande.change_channel("15") # or
+    
+    # list multi button
+    #telecommande.multi_commande(["1", "5"]) # or
+    #telecommande.multi_commande(["up", "down"], chan_change=False)
+    
+    # get TV list programme 
+    telecommande.get_programme("TF1")
